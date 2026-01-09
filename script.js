@@ -170,22 +170,29 @@ function handleFailure() {
 
 function triggerReward(isDouble) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
-    playSuccessDitty();
+    playSuccessDitty(); // Plays the triumphant sound
 
     const imgs = ['CalfCrash.png', 'CalfHop.png', 'CalfKick.png', 'CalfLickingDaisy.png', 'CalfMilk.png', 'CalfSitting.png', 'CalfVsButterfly.png'];
     const imgFile = isDouble ? 'DoubleBougieRamming.png' : imgs[Math.floor(Math.random() * imgs.length)];
-
-    // Path uses "Assets/" (Capital A) and backticks ( ` ) for evaluation
-    overlay.innerHTML = `<img src="Assets/${imgFile}" style="max-width: 80%; max-height: 70vh; border-radius: 40px;">`;
+    
+    // Path uses "Assets/" (Capital A) and backticks for evaluation
+    // Added an 'onerror' logger to help us find the problem if it persists
+    overlay.innerHTML = `<img src="Assets/${imgFile}" 
+        style="max-width: 80%; max-height: 70vh; border-radius: 40px;" 
+        onerror="console.error('Failed to load: Assets/${imgFile}')">`;
+    
     overlay.style.display = 'flex';
 
+    // Phonetic spelling: "Boh" sounds like "Bow" in bow-tie
     const announce = isDouble ? 'Double Boh-ghee!' : 'Boh-ghee Streak!';
+    
     speak(announce, () => {
+        // Wait 3 seconds after the voice finishes so she can see the calf
         setTimeout(() => {
             overlay.style.display = 'none';
             if (!isDouble) state.sets++;
             initRound();
-        }, 3500);
+        }, 3000);
     });
 }
 
