@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        :root { --unit-px: 50px; --purple: #876EB8; }
+        #game-container { display: flex; flex-direction: column; align-items: center; }
+        #visual-stack { 
+            height: 1000px; width: 100px; position: relative; 
+            background: repeating-linear-gradient(to top, transparent, transparent 249px, var(--purple) 250px);
+            border: 1px solid #ccc;
+        }
+        .block { position: absolute; width: 100%; border: 1px solid white; }
+        #answer-input { font-size: 2rem; width: 100px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h2 id="mode-display">Addition Mode</h2>
+        <div id="visual-stack"></div>
+        <h1 id="problem-text">? + ?</h1>
+        <input type="number" id="answer-input" autofocus>
+        <div id="score-board">10 in a row: 0/5 | Rehearsal Score: 0</div>
+    </div>
+
+    <script>
+        // CONFIGURATION: Update this level (1-5) to change the 80/20 Seeding logic
+        const CURRENT_LEVEL = 1; 
+        
+        // 80/20 Seeding: 'knowns' vs 'learning' facts
+        const levelConfig = {
+            1: { knowns: [[1,1], [2,2]], learning: [[7,5], [6,9]] },
+            // Add higher levels here...
+        };
+
+        const state = { mode: 'addition', timer: null, streak: 0, wins: 0 };
+
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-AU';
+            window.speechSynthesis.speak(msg);
+        }
+
+        function startCoverCopyCompare(a, b) {
+            const sum = a + b;
+            document.getElementById('problem-text').innerText = `${a} + ${b} = ${sum}`;
+            speak(`${a} plus ${b} is ${sum}`);
+            
+            // Cover after 2 seconds (Neuroscience: forces retrieval)
+            setTimeout(() => {
+                document.getElementById('problem-text').innerText = `${a} + ${b} = ?`;
+                startDecayTimer();
+            }, 2000);
+        }
+
+        function startDecayTimer() {
+            // 4-second decay forces the brain to skip counting
+            state.timer = setTimeout(() => handleTimeout(), 4000);
+        }
+
+        function handleAnswer(val) {
+            clearTimeout(state.timer);
+            // Logic for checking answer, updating score, and re-focusing input
+            document.getElementById('answer-input').value = '';
+            document.getElementById('answer-input').focus();
+        }
+
+        document.getElementById('answer-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleAnswer(e.target.value);
+        });
+    </script>
+</body>
+</html>
