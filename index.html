@@ -1,72 +1,279 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-AU">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Magic: Bougie Streaks</title>
     <style>
-        :root { --unit-px: 50px; --purple: #876EB8; }
-        #game-container { display: flex; flex-direction: column; align-items: center; }
-        #visual-stack { 
-            height: 1000px; width: 100px; position: relative; 
-            background: repeating-linear-gradient(to top, transparent, transparent 249px, var(--purple) 250px);
-            border: 1px solid #ccc;
+        /* Modern Magical Gradient Background */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb, #d8bfd8);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            overflow: hidden;
         }
-        .block { position: absolute; width: 100%; border: 1px solid white; }
-        #answer-input { font-size: 2rem; width: 100px; text-align: center; }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #game-container {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        /* Pixel-Perfect Magnitude Grid */
+        #visual-stack-wrapper {
+            height: 1000px;
+            width: 120px;
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 2px solid #fff;
+            border-radius: 10px;
+        }
+
+        .grid-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background-color: #876EB8; /* User requested purple */
+            z-index: 1;
+        }
+
+        #visual-stack {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .block {
+            position: absolute;
+            width: 80%;
+            left: 10%;
+            border: 2px solid white;
+            border-radius: 5px;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* UI Elements */
+        #problem-area { min-width: 300px; }
+        #problem-text { font-size: 5rem; margin-bottom: 20px; color: #333; }
+        
+        #answer-input {
+            font-size: 3rem;
+            width: 150px;
+            text-align: center;
+            border: 4px solid #876EB8;
+            border-radius: 15px;
+            padding: 10px;
+            outline: none;
+        }
+
+        /* Stats & Scoreboard */
+        #stats { margin-top: 20px; font-size: 1.2rem; color: #555; }
+        .score-val { font-weight: bold; color: #876EB8; }
+
+        /* Reward Overlay */
+        #reward-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.5s;
+        }
+
+        #reward-overlay img {
+            max-width: 500px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
+
+    <div id="reward-overlay"></div>
+
     <div id="game-container">
-        <h2 id="mode-display">Addition Mode</h2>
-        <div id="visual-stack"></div>
-        <h1 id="problem-text">? + ?</h1>
-        <input type="number" id="answer-input" autofocus>
-        <div id="score-board">10 in a row: 0/5 | Rehearsal Score: 0</div>
+        <div id="visual-stack-wrapper">
+            <div class="grid-line" style="bottom:250px;"></div> <div class="grid-line" style="bottom:500px;"></div> <div class="grid-line" style="bottom:750px;"></div> <div class="grid-line" style="bottom:1000px;"></div> <div id="visual-stack"></div>
+        </div>
+
+        <div id="problem-area">
+            <h1 id="problem-text">Ready?</h1>
+            <input type="number" id="answer-input" autofocus autocomplete="off">
+            <div id="stats">
+                <div>CCC Count: <span id="ccc-count" class="score-val">0/20</span></div>
+                <div>Current Streak: <span id="streak-val" class="score-val">0</span>/10</div>
+                <div>Mastered Sets: <span id="sets-val" class="score-val">0</span>/5</div>
+            </div>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
     <script>
-        // CONFIGURATION: Update this level (1-5) to change the 80/20 Seeding logic
-        const CURRENT_LEVEL = 1; 
-        
-        // 80/20 Seeding: 'knowns' vs 'learning' facts
-        const levelConfig = {
-            1: { knowns: [[1,1], [2,2]], learning: [[7,5], [6,9]] },
-            // Add higher levels here...
+        // CONFIGURATION
+        const UNIT_PX = 50; 
+        const streakImages = [
+            'assets/Calf crash.png', 'assets/Calf hop.png', 'assets/Calf kick.png', 
+            'assets/Calf licking daisy.png', 'assets/Calf Milk.png', 
+            'assets/Calf Sitting.png', 'assets/Calf v Butterfly.png'
+        ];
+
+        let state = {
+            level: 1,
+            knowns: [[2, 2], [5, 5], [3, 3]],
+            learning: [[7, 5], [6, 9], [8, 4], [7, 6]],
+            currentProblem: null,
+            cccCount: 0,
+            streak: 0,
+            sets: 0,
+            timer: null
         };
 
-        const state = { mode: 'addition', timer: null, streak: 0, wins: 0 };
+        const problemText = document.getElementById('problem-text');
+        const inputEl = document.getElementById('answer-input');
+        const stackEl = document.getElementById('visual-stack');
+        const rewardOverlay = document.getElementById('reward-overlay');
 
         function speak(text) {
             const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'en-AU';
+            msg.lang = 'en-AU'; // Force Australian accent
+            msg.rate = 0.85; 
             window.speechSynthesis.speak(msg);
         }
 
-        function startCoverCopyCompare(a, b) {
-            const sum = a + b;
-            document.getElementById('problem-text').innerText = `${a} + ${b} = ${sum}`;
-            speak(`${a} plus ${b} is ${sum}`);
+        function generateProblem() {
+            // 80/20 Seeding: 80% known, 20% learning
+            const pool = Math.random() < 0.2 ? state.learning : state.knowns;
+            const pair = pool[Math.floor(Math.random() * pool.length)];
             
-            // Cover after 2 seconds (Neuroscience: forces retrieval)
+            state.currentProblem = { a: pair[0], b: pair[1], answer: pair[0] + pair[1] };
+            
+            // Render the blocks
+            renderStack(pair[0], pair[1]);
+
+            // Phase 1: Cover-Copy-Compare (Retrieval Practice)
+            problemText.innerText = `${pair[0]} + ${pair[1]} = ${state.currentProblem.answer}`;
+            speak(`${pair[0]} plus ${pair[1]} is ${state.currentProblem.answer}`);
+            
+            inputEl.disabled = true;
+
             setTimeout(() => {
-                document.getElementById('problem-text').innerText = `${a} + ${b} = ?`;
-                startDecayTimer();
+                // Phase 2: The "Cover" and the "4-second Decay Timer"
+                problemText.innerText = `${pair[0]} + ${pair[1]} = ?`;
+                inputEl.disabled = false;
+                inputEl.value = '';
+                inputEl.focus();
+                
+                state.timer = setTimeout(() => handleWrong("Time's up!"), 4000);
             }, 2000);
         }
 
-        function startDecayTimer() {
-            // 4-second decay forces the brain to skip counting
-            state.timer = setTimeout(() => handleTimeout(), 4000);
+        function renderStack(a, b) {
+            stackEl.innerHTML = '';
+            
+            const blockA = document.createElement('div');
+            blockA.className = 'block';
+            blockA.style.height = `${a * UNIT_PX}px`;
+            blockA.style.bottom = '0px';
+            blockA.style.backgroundColor = '#a1c4fd'; // Blue
+            
+            const blockB = document.createElement('div');
+            blockB.className = 'block';
+            blockB.style.height = `${b * UNIT_PX}px`;
+            blockB.style.bottom = `${a * UNIT_PX}px`;
+            blockB.style.backgroundColor = '#ff9a9e'; // Pink
+
+            stackEl.appendChild(blockA);
+            stackEl.appendChild(blockB);
         }
 
-        function handleAnswer(val) {
+        function checkAnswer() {
             clearTimeout(state.timer);
-            // Logic for checking answer, updating score, and re-focusing input
-            document.getElementById('answer-input').value = '';
-            document.getElementById('answer-input').focus();
+            const val = parseInt(inputEl.value);
+
+            if (val === state.currentProblem.answer) {
+                state.cccCount = Math.min(20, state.cccCount + 1);
+                state.streak++;
+                document.getElementById('ccc-count').innerText = `${state.cccCount}/20`;
+                document.getElementById('streak-val').innerText = state.streak;
+
+                if (state.streak >= 10) {
+                    triggerBougieStreak();
+                } else {
+                    generateProblem();
+                }
+            } else {
+                handleWrong(`Actually, ${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.answer}`);
+            }
         }
 
-        document.getElementById('answer-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleAnswer(e.target.value);
+        function handleWrong(msg) {
+            state.streak = 0;
+            document.getElementById('streak-val').innerText = 0;
+            speak(msg);
+            // 2-second corrective feedback
+            setTimeout(() => generateProblem(), 2000);
+        }
+
+        function triggerBougieStreak() {
+            state.sets++;
+            state.streak = 0;
+            document.getElementById('sets-val').innerText = state.sets;
+            document.getElementById('streak-val').innerText = 0;
+
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+            const randomImg = streakImages[Math.floor(Math.random() * streakImages.length)];
+            rewardOverlay.innerHTML = `<img src="${randomImg}"> <h1 style="font-size:4rem; color:#876EB8;">BOUGIE STREAK!</h1>`;
+            rewardOverlay.style.display = 'flex';
+            
+            speak("Bougie Streak!");
+
+            setTimeout(() => {
+                rewardOverlay.style.display = 'none';
+                if (state.sets >= 5) {
+                    alert("Congratulations! You've mastered this level!");
+                } else {
+                    generateProblem();
+                }
+            }, 4000);
+        }
+
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
         });
+
+        // Initialize Speech and Start
+        window.onload = () => {
+            // Speech needs a user interaction usually, but we'll try to init
+            window.speechSynthesis.getVoices();
+            generateProblem();
+        };
     </script>
 </body>
 </html>
