@@ -4,8 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Math Magic: Bougie Streaks</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <style>
-        /* Modern Magical Gradient Background */
+        :root {
+            --unit-px: 50px;
+            --purple: #876EB8;
+            --pink: #ff9a9e;
+            --blue: #a1c4fd;
+        }
+
+        /* 1. Magical Shifting Background */
         body {
             margin: 0;
             padding: 0;
@@ -13,7 +21,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Rounded Mplus 1c', 'Segoe UI', sans-serif;
             background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb, #d8bfd8);
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
@@ -26,32 +34,38 @@
             100% { background-position: 0% 50%; }
         }
 
-        #game-container {
+        /* 2. Container with Background Margins */
+        #viewport-wrapper {
+            width: 90vw;
+            height: 90vh; /* Leaves 5vh margin top/bottom */
             background: rgba(255, 255, 255, 0.85);
-            padding: 40px;
-            border-radius: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            text-align: center;
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
             display: flex;
-            gap: 40px;
+            padding: 40px;
+            box-sizing: border-box;
+            gap: 50px;
             align-items: center;
+            justify-content: center;
         }
 
-        /* Pixel-Perfect Magnitude Grid */
-        #visual-stack-wrapper {
-            height: 1000px;
-            width: 120px;
+        /* 3. Pixel-Perfect Grid & Stack */
+        #stack-container {
+            height: 1000px; /* 20 units * 50px */
+            width: 140px;
             position: relative;
-            background-color: rgba(255, 255, 255, 0.5);
-            border: 2px solid #fff;
-            border-radius: 10px;
+            background: white;
+            border: 4px solid var(--purple);
+            border-radius: 15px;
+            overflow: hidden;
         }
 
         .grid-line {
             position: absolute;
             width: 100%;
             height: 3px;
-            background-color: #876EB8; /* User requested purple */
+            background-color: var(--purple);
             z-index: 1;
         }
 
@@ -64,215 +78,249 @@
 
         .block {
             position: absolute;
-            width: 80%;
-            left: 10%;
-            border: 2px solid white;
-            border-radius: 5px;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 100%;
+            border-bottom: 2px solid white;
+            transition: height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .block-a { background-color: var(--blue); }
+        .block-b { background-color: var(--pink); }
+
+        /* 4. Problem & Input UI */
+        #problem-area { flex: 1; text-align: center; }
+        
+        #problem-display {
+            font-size: 6rem;
+            margin-bottom: 30px;
+            font-weight: 800;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
         }
 
-        /* UI Elements */
-        #problem-area { min-width: 300px; }
-        #problem-text { font-size: 5rem; margin-bottom: 20px; color: #333; }
-        
-        #answer-input {
-            font-size: 3rem;
-            width: 150px;
+        /* Warm-up Multi-fields */
+        .w-field, .ans-field {
+            font-size: 4rem;
+            width: 120px;
             text-align: center;
-            border: 4px solid #876EB8;
-            border-radius: 15px;
+            border: 5px solid var(--purple);
+            border-radius: 20px;
             padding: 10px;
             outline: none;
+            background: white;
+            color: #333;
         }
+        .ans-field { width: 180px; }
 
-        /* Stats & Scoreboard */
-        #stats { margin-top: 20px; font-size: 1.2rem; color: #555; }
-        .score-val { font-weight: bold; color: #876EB8; }
+        /* Stats & Overlays */
+        #stats { margin-top: 30px; font-size: 1.5rem; color: #555; line-height: 1.8; }
+        .score-box { font-weight: bold; color: var(--purple); background: #eee; padding: 5px 15px; border-radius: 10px; }
 
-        /* Reward Overlay */
         #reward-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            animation: fadeIn 0.5s;
         }
-
-        #reward-overlay img {
-            max-width: 500px;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #reward-overlay img { max-width: 600px; border-radius: 30px; margin-bottom: 20px; }
+        
+        /* Disable arrows on number inputs */
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body>
 
     <div id="reward-overlay"></div>
 
-    <div id="game-container">
-        <div id="visual-stack-wrapper">
-            <div class="grid-line" style="bottom:250px;"></div> <div class="grid-line" style="bottom:500px;"></div> <div class="grid-line" style="bottom:750px;"></div> <div class="grid-line" style="bottom:1000px;"></div> <div id="visual-stack"></div>
+    <div id="viewport-wrapper">
+        <div id="stack-container">
+            <div class="grid-line" style="bottom:250px;"></div>
+            <div class="grid-line" style="bottom:500px;"></div>
+            <div class="grid-line" style="bottom:750px;"></div>
+            <div class="grid-line" style="bottom:1000px;"></div>
+            <div id="visual-stack"></div>
         </div>
 
         <div id="problem-area">
-            <h1 id="problem-text">Ready?</h1>
-            <input type="number" id="answer-input" autofocus autocomplete="off">
+            <div id="problem-display">Loading...</div>
+            
             <div id="stats">
-                <div>CCC Count: <span id="ccc-count" class="score-val">0/20</span></div>
-                <div>Current Streak: <span id="streak-val" class="score-val">0</span>/10</div>
-                <div>Mastered Sets: <span id="sets-val" class="score-val">0</span>/5</div>
+                <div>Warm-up: <span id="ccc-count" class="score-box">0/20</span></div>
+                <div>Streak: <span id="streak-val" class="score-box">0</span>/10</div>
+                <div>Sets: <span id="sets-val" class="score-box">0</span>/5</div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-
     <script>
-        // CONFIGURATION Bougie Streak
-        const UNIT_PX = 50; 
-        const streakImages = [
-            'assets/Calf crash.png', 'assets/Calf hop.png', 'assets/Calf kick.png', 
-            'assets/Calf licking daisy.png', 'assets/Calf Milk.png', 
-            'assets/Calf Sitting.png', 'assets/Calf v Butterfly.png'
-        ];
-
-        let state = {
-            level: 1,
-            knowns: [[2, 2], [5, 5], [3, 3]],
-            learning: [[7, 5], [6, 9], [8, 4], [7, 6]],
-            currentProblem: null,
+        const state = {
+            phase: 'WARMUP',
             cccCount: 0,
             streak: 0,
             sets: 0,
-            timer: null
+            timerId: null,
+            currentProblem: null,
+            isProcessing: false,
+            knowns: [[2,2], [5,5], [3,3]],
+            learning: [[7,5], [6,9], [8,4], [7,6], [9,3]]
         };
 
-        const problemText = document.getElementById('problem-text');
-        const inputEl = document.getElementById('answer-input');
+        const display = document.getElementById('problem-display');
         const stackEl = document.getElementById('visual-stack');
-        const rewardOverlay = document.getElementById('reward-overlay');
+        const overlay = document.getElementById('reward-overlay');
 
-        function speak(text) {
+        function speak(text, callback) {
             const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'en-AU'; // Force Australian accent
-            msg.rate = 0.85; 
+            msg.lang = 'en-AU';
+            msg.rate = 0.9;
+            if (callback) msg.onend = callback;
             window.speechSynthesis.speak(msg);
         }
 
-        function generateProblem() {
-            // 80/20 Seeding: 80% known, 20% learning
-            const pool = Math.random() < 0.2 ? state.learning : state.knowns;
-            const pair = pool[Math.floor(Math.random() * pool.length)];
-            
-            state.currentProblem = { a: pair[0], b: pair[1], answer: pair[0] + pair[1] };
-            
-            // Render the blocks
-            renderStack(pair[0], pair[1]);
-
-            // Phase 1: Cover-Copy-Compare (Retrieval Practice)
-            problemText.innerText = `${pair[0]} + ${pair[1]} = ${state.currentProblem.answer}`;
-            speak(`${pair[0]} plus ${pair[1]} is ${state.currentProblem.answer}`);
-            
-            inputEl.disabled = true;
-
-            setTimeout(() => {
-                // Phase 2: The "Cover" and the "4-second Decay Timer"
-                problemText.innerText = `${pair[0]} + ${pair[1]} = ?`;
-                inputEl.disabled = false;
-                inputEl.value = '';
-                inputEl.focus();
-                
-                state.timer = setTimeout(() => handleWrong("Time's up!"), 4000);
-            }, 2000);
+        function clearAllTimers() {
+            if (state.timerId) { clearTimeout(state.timerId); state.timerId = null; }
         }
 
         function renderStack(a, b) {
-            stackEl.innerHTML = '';
-            
-            const blockA = document.createElement('div');
-            blockA.className = 'block';
-            blockA.style.height = `${a * UNIT_PX}px`;
-            blockA.style.bottom = '0px';
-            blockA.style.backgroundColor = '#a1c4fd'; // Blue
-            
-            const blockB = document.createElement('div');
-            blockB.className = 'block';
-            blockB.style.height = `${b * UNIT_PX}px`;
-            blockB.style.bottom = `${a * UNIT_PX}px`;
-            blockB.style.backgroundColor = '#ff9a9e'; // Pink
-
-            stackEl.appendChild(blockA);
-            stackEl.appendChild(blockB);
+            stackEl.innerHTML = `
+                <div class="block block-a" style="height:${a * 50}px; bottom:0;"></div>
+                <div class="block block-b" style="height:${b * 50}px; bottom:${a * 50}px;"></div>
+            `;
         }
 
-        function checkAnswer() {
-            clearTimeout(state.timer);
-            const val = parseInt(inputEl.value);
-
-            if (val === state.currentProblem.answer) {
-                state.cccCount = Math.min(20, state.cccCount + 1);
-                state.streak++;
-                document.getElementById('ccc-count').innerText = `${state.cccCount}/20`;
-                document.getElementById('streak-val').innerText = state.streak;
-
-                if (state.streak >= 10) {
-                    triggerBougieStreak();
-                } else {
-                    generateProblem();
-                }
+        function startRound() {
+            clearAllTimers();
+            state.isProcessing = false;
+            
+            if (state.cccCount < 20) {
+                state.phase = 'WARMUP';
+                const pair = state.learning[Math.floor(Math.random() * state.learning.length)];
+                state.currentProblem = { a: pair[0], b: pair[1], sum: pair[0] + pair[1] };
+                
+                renderStack(pair[0], pair[1]);
+                display.innerHTML = `${pair[0]} + ${pair[1]} = ${state.currentProblem.sum}`;
+                
+                speak(`${pair[0]} plus ${pair[1]} is ${state.currentProblem.sum}`, () => {
+                    setTimeout(setupWarmupInputs, 800);
+                });
             } else {
-                handleWrong(`Actually, ${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.answer}`);
+                state.phase = 'CHALLENGE';
+                const pool = Math.random() < 0.2 ? state.learning : state.knowns;
+                const pair = pool[Math.floor(Math.random() * pool.length)];
+                state.currentProblem = { a: pair[0], b: pair[1], sum: pair[0] + pair[1] };
+                
+                renderStack(pair[0], pair[1]);
+                display.innerHTML = `${pair[0]} + ${pair[1]} = <input type="number" id="ans" class="ans-field" autofocus>`;
+                
+                const input = document.getElementById('ans');
+                input.focus();
+                input.onkeydown = (e) => { if(e.key === 'Enter') checkChallenge(input.value); };
+
+                // 3s Timer starts ONLY once input is ready
+                state.timerId = setTimeout(() => handleFailure("Out of time!"), 3000);
             }
         }
 
-        function handleWrong(msg) {
-            state.streak = 0;
-            document.getElementById('streak-val').innerText = 0;
-            speak(msg);
-            // 2-second corrective feedback
-            setTimeout(() => generateProblem(), 2000);
-        }
-
-        function triggerBougieStreak() {
-            state.sets++;
-            state.streak = 0;
-            document.getElementById('sets-val').innerText = state.sets;
-            document.getElementById('streak-val').innerText = 0;
-
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
-            const randomImg = streakImages[Math.floor(Math.random() * streakImages.length)];
-            rewardOverlay.innerHTML = `<img src="${randomImg}"> <h1 style="font-size:4rem; color:#876EB8;">BOUGIE STREAK!</h1>`;
-            rewardOverlay.style.display = 'flex';
+        function setupWarmupInputs() {
+            display.innerHTML = `
+                <input type="number" id="w1" class="w-field" autofocus> 
+                <span>+</span> 
+                <input type="number" id="w2" class="w-field"> 
+                <span>=</span> 
+                <input type="number" id="w3" class="w-field">
+            `;
             
-            speak("Bougie Streak!");
-
-            setTimeout(() => {
-                rewardOverlay.style.display = 'none';
-                if (state.sets >= 5) {
-                    alert("Congratulations! You've mastered this level!");
-                } else {
-                    generateProblem();
-                }
-            }, 4000);
+            const fields = [document.getElementById('w1'), document.getElementById('w2'), document.getElementById('w3')];
+            fields.forEach((f, i) => {
+                f.oninput = () => {
+                    // Auto-jump logic
+                    if (i < 2 && f.value.length >= 1) fields[i+1].focus();
+                    if (i === 2 && f.value.length >= 2) checkWarmup(fields);
+                };
+                f.onkeydown = (e) => { if(e.key === 'Enter') checkWarmup(fields); };
+            });
         }
 
-        inputEl.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkAnswer();
-        });
+        function checkWarmup(fields) {
+            const v1 = parseInt(fields[0].value);
+            const v2 = parseInt(fields[1].value);
+            const v3 = parseInt(fields[2].value);
+            
+            const correctOrder = (v1 === state.currentProblem.a && v2 === state.currentProblem.b) || 
+                                 (v1 === state.currentProblem.b && v2 === state.currentProblem.a);
+            
+            if (correctOrder && v3 === state.currentProblem.sum) {
+                state.cccCount++;
+                document.getElementById('ccc-count').innerText = `${state.cccCount}/20`;
+                startRound();
+            } else {
+                handleFailure("Let's try again.");
+            }
+        }
 
-        // Initialize Speech and Start
+        function checkChallenge(val) {
+            clearAllTimers();
+            if (state.isProcessing) return;
+            state.isProcessing = true;
+
+            if (parseInt(val) === state.currentProblem.sum) {
+                state.streak++;
+                updateStats();
+                if (state.streak === 10) triggerReward(false);
+                else if (state.streak === 20) triggerReward(true);
+                else startRound();
+            } else {
+                handleFailure("Not quite.");
+            }
+        }
+
+        function handleFailure(msg) {
+            clearAllTimers();
+            state.streak = 0;
+            updateStats();
+            display.innerHTML = `<span style="color:red">${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}</span>`;
+            speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`, () => {
+                setTimeout(startRound, 1000);
+            });
+        }
+
+        function triggerReward(isDouble) {
+            confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
+            const title = isDouble ? "DOUBLE BOUGIE!" : "BOUGIE STREAK!";
+            const imgs = [
+                'assets/Calf crash.png', 'assets/Calf hop.png', 'assets/Calf kick.png', 
+                'assets/Calf licking daisy.png', 'assets/Calf Milk.png', 
+                'assets/Calf Sitting.png', 'assets/Calf v Butterfly.png'
+            ];
+            const img = isDouble ? 'assets/Double Bougie Ramming.png' : imgs[Math.floor(Math.random() * imgs.length)];
+            
+            overlay.innerHTML = `<img src="${img}"><h1>${title}</h1>`;
+            overlay.style.display = 'flex';
+            
+            speak(title, () => {
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    if (!isDouble) state.sets++;
+                    startRound();
+                }, 3000);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('streak-val').innerText = state.streak;
+            document.getElementById('sets-val').innerText = state.sets;
+        }
+
         window.onload = () => {
-            // Speech needs a user interaction usually, but we'll try to init
-            window.speechSynthesis.getVoices();
-            generateProblem();
+            // Wait for voices to load
+            window.speechSynthesis.onvoiceschanged = () => { startRound(); window.speechSynthesis.onvoiceschanged = null; };
+            if (window.speechSynthesis.getVoices().length > 0) startRound();
         };
     </script>
 </body>
