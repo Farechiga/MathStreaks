@@ -20,7 +20,7 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// THE FIX: "Boh-ghee" pronunciation for speech engine
+// Phonetic Pronunciation for "Boh-ghee" (Bow-tie + Ghee)
 function speak(text, callback) {
     window.speechSynthesis.cancel();
     let phoneticText = text.replace(/Bougie/g, "Boh-ghee");
@@ -32,14 +32,13 @@ function speak(text, callback) {
     window.speechSynthesis.speak(msg);
 }
 
-// THE ADDITION: Success Chime using Synth
-function playSuccessDitty() {
+function playSuccessChime() {
     const context = new (window.AudioContext || window.webkitAudioContext)();
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    const notes = [523.25, 659.25, 783.99, 1046.50]; 
     notes.forEach((freq, i) => {
         const osc = context.createOscillator();
         const gain = context.createGain();
-        osc.type = 'triangle';
+        osc.type = 'sine';
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(0, context.currentTime);
         gain.gain.linearRampToValueAtTime(0.2, context.currentTime + i * 0.1 + 0.05);
@@ -54,13 +53,13 @@ function playSuccessDitty() {
 function generateProblem() {
     let a, b, sum;
     if (state.phase === 'WARMUP') {
-        a = Math.floor(Math.random() * 9) + 1;
+        a = Math.floor(Math.random() * 9) + 1; // Limit to 9 for auto-tab
         b = Math.floor(Math.random() * 9) + 1;
     } else {
-        const isHard = Math.random() < 0.2;
+        const isHard = Math.random() < 0.2; // 80/20 Rule
         const limit = isHard ? 20 : 15;
         do {
-            a = Math.floor(Math.random() * 10) + 1;
+            a = Math.floor(Math.random() * 10) + 1; // Limit individual addends to 10
             b = Math.floor(Math.random() * 10) + 1;
             sum = a + b;
         } while (sum > limit || (isHard && sum <= 15));
@@ -163,15 +162,17 @@ function handleFailure() {
 
 function triggerReward(isDouble) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
-    playSuccessDitty(); // Play the chime
+    playSuccessChime();
     
     const imgs = ['Calf crash.png', 'Calf hop.png', 'Calf kick.png', 'Calf licking daisy.png', 'Calf Milk.png', 'Calf Sitting.png', 'Calf v Butterfly.png'];
     const imgFile = isDouble ? 'Double Bougie Ramming.png' : imgs[Math.floor(Math.random() * imgs.length)];
     
-    overlay.innerHTML = `<img src="${imgFile}"><h1>${isDouble ? 'DOUBLE BOUGIE!' : 'BOUGIE STREAK!'}</h1>`;
+    // Path includes "assets/" folder
+    overlay.innerHTML = `<img src="assets/${imgFile}">`;
     overlay.style.display = 'flex';
     
-    speak(isDouble ? 'Double Bougie!' : 'Bougie Streak!', () => {
+    const announce = isDouble ? 'Double Boh-ghee!' : 'Boh-ghee Streak!';
+    speak(announce, () => {
         setTimeout(() => {
             overlay.style.display = 'none';
             if (!isDouble) state.sets++;
