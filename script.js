@@ -170,16 +170,16 @@ function handleFailure() {
 
 function triggerReward(isDouble) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
-    playSuccessDitty(); 
-    
+    playSuccessDitty();
+
     const imgs = ['CalfCrash.png', 'CalfHop.png', 'CalfKick.png', 'CalfLickingDaisy.png', 'CalfMilk.png', 'CalfSitting.png', 'CalfVsButterfly.png'];
     const imgFile = isDouble ? 'DoubleBougieRamming.png' : imgs[Math.floor(Math.random() * imgs.length)];
-    
-    // Path uses "assets/" folder + URL encoding for spaces
-    overlay.innerHTML = `<img src="assets/${encodeURIComponent(imgFile)}">`;
+
+    // Path uses "Assets/" (Capital A) and backticks ( ` ) for evaluation
+    overlay.innerHTML = `<img src="Assets/${imgFile}" style="max-width: 80%; max-height: 70vh; border-radius: 40px;">`;
     overlay.style.display = 'flex';
-    
-    const announce = isDouble ? 'Double Bougie!' : 'Bougie Streak!';
+
+    const announce = isDouble ? 'Double Boh-ghee!' : 'Boh-ghee Streak!';
     speak(announce, () => {
         setTimeout(() => {
             overlay.style.display = 'none';
