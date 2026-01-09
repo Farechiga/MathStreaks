@@ -1,3 +1,8 @@
+/**
+ * MATH MAGIC: BOUGIE STREAKS
+ * Logic Engine v5.0 - Final Production Fix
+ */
+
 const state = {
     phase: 'WARMUP',
     cccCount: 0,
@@ -20,21 +25,10 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// Phonetic Pronunciation for "Boh-ghee" (Bow-tie + Ghee)
-function speak(text, callback) {
-    window.speechSynthesis.cancel();
-    let phoneticText = text.replace(/Bougie/g, "Boh-ghee");
-    const msg = new SpeechSynthesisUtterance(phoneticText);
-    if (state.voice) msg.voice = state.voice;
-    msg.lang = 'en-AU';
-    msg.rate = 0.9;
-    if (callback) msg.onend = callback;
-    window.speechSynthesis.speak(msg);
-}
-
-function playSuccessChime() {
+// Audio Synthesis for "Success Ditty"
+function playSuccessDitty() {
     const context = new (window.AudioContext || window.webkitAudioContext)();
-    const notes = [523.25, 659.25, 783.99, 1046.50]; 
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
     notes.forEach((freq, i) => {
         const osc = context.createOscillator();
         const gain = context.createGain();
@@ -50,16 +44,28 @@ function playSuccessChime() {
     });
 }
 
+function speak(text, callback) {
+    window.speechSynthesis.cancel();
+    // Phonetic: Boh-ghee (Bow-tie + Ghee)
+    let phoneticText = text.replace(/Bougie/g, "Boh-ghee");
+    const msg = new SpeechSynthesisUtterance(phoneticText);
+    if (state.voice) msg.voice = state.voice;
+    msg.lang = 'en-AU';
+    msg.rate = 0.9;
+    if (callback) msg.onend = callback;
+    window.speechSynthesis.speak(msg);
+}
+
 function generateProblem() {
     let a, b, sum;
     if (state.phase === 'WARMUP') {
-        a = Math.floor(Math.random() * 9) + 1; // Limit to 9 for auto-tab
+        a = Math.floor(Math.random() * 9) + 1; // Limit addends <= 9
         b = Math.floor(Math.random() * 9) + 1;
     } else {
-        const isHard = Math.random() < 0.2; // 80/20 Rule
+        const isHard = Math.random() < 0.2;
         const limit = isHard ? 20 : 15;
         do {
-            a = Math.floor(Math.random() * 10) + 1; // Limit individual addends to 10
+            a = Math.floor(Math.random() * 10) + 1; // Limit addends <= 10
             b = Math.floor(Math.random() * 10) + 1;
             sum = a + b;
         } while (sum > limit || (isHard && sum <= 15));
@@ -93,6 +99,8 @@ function initRound() {
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = <input type="number" id="ans" autofocus>`;
         const input = document.getElementById('ans');
         input.focus();
+        
+        // Auto-advance for Challenge
         input.oninput = () => {
             const targetLen = state.currentProblem.sum >= 10 ? 2 : 1;
             if (input.value.length >= targetLen) checkChallenge(input.value);
@@ -162,16 +170,16 @@ function handleFailure() {
 
 function triggerReward(isDouble) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
-    playSuccessChime();
+    playSuccessDitty(); 
     
-    const imgs = ['Calf crash.png', 'Calf hop.png', 'Calf kick.png', 'Calf licking daisy.png', 'Calf Milk.png', 'Calf Sitting.png', 'Calf v Butterfly.png'];
-    const imgFile = isDouble ? 'Double Bougie Ramming.png' : imgs[Math.floor(Math.random() * imgs.length)];
+    const imgs = ['CalfCrash.png', 'CalfHop.png', 'CalfKick.png', 'CalfLickingDaisy.png', 'CalfMilk.png', 'CalfSitting.png', 'CalfVsButterfly.png'];
+    const imgFile = isDouble ? 'DoubleBougieRamming.png' : imgs[Math.floor(Math.random() * imgs.length)];
     
-    // Path includes "assets/" folder
-    overlay.innerHTML = `<img src="assets/${imgFile}">`;
+    // Path uses "assets/" folder + URL encoding for spaces
+    overlay.innerHTML = `<img src="assets/${encodeURIComponent(imgFile)}">`;
     overlay.style.display = 'flex';
     
-    const announce = isDouble ? 'Double Boh-ghee!' : 'Boh-ghee Streak!';
+    const announce = isDouble ? 'Double Bougie!' : 'Bougie Streak!';
     speak(announce, () => {
         setTimeout(() => {
             overlay.style.display = 'none';
