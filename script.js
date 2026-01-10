@@ -145,42 +145,46 @@ function checkChallenge(val) {
     if (state.isProcessing) return;
     clearTimeout(state.timerId);
     state.isProcessing = true;
+    
     if (parseInt(val) === state.currentProblem.sum) {
         state.streak++;
-        updateStats();
-        // Milestone Logic
-        if (state.streak === 10) triggerReward("Boh-ghee Streak!", "CalfCrash.png");
-        else if (state.streak === 20) triggerReward("Double Boh-ghee!", "DoubleBougieRamming.png");
-        else if (state.streak === 30) triggerReward("Triple Boh-ghee!", "TripleBougiePyramid.png");
-        else if (state.streak === 40) triggerReward("Quad Boh-ghee Squad!", "BougieQuadSquad.png");
-        else if (state.streak === 50) triggerReward("The Perfect Boh-ghee!", "ThePerfectBougie.png");
-        else initRound();
-    } else { handleFailure(); }
+        
+        // TARGETED FIX: Increment sets for EVERY milestone (10, 20, 30, 40, 50)
+        if (state.streak % 10 === 0) {
+            state.sets++; 
+            updateStats(); // Update the UI immediately so she sees the progress
+            
+            // Trigger specific rewards based on the current milestone
+            if (state.streak === 10) triggerReward("Boh-ghee Streak!", "CalfCrash.png");
+            else if (state.streak === 20) triggerReward("Double Boh-ghee!", "DoubleBougieRamming.png");
+            else if (state.streak === 30) triggerReward("Triple Boh-ghee!", "TripleBougiePyramid.png");
+            else if (state.streak === 40) triggerReward("Quad Boh-ghee Squad!", "BougieQuadSquad.png");
+            else if (state.streak === 50) triggerReward("The Perfect Boh-ghee!", "ThePerfectBougie.png");
+        } else {
+            updateStats();
+            initRound();
+        }
+    } else { 
+        handleFailure(); 
+    }
 }
 
-function handleFailure() {
-    clearTimeout(state.timerId);
-    state.isProcessing = true;
-    state.streak = 0; 
-    updateStats();
-    display.innerHTML = `<span style="color:#e74c3c">${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}</span>`;
-    speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`, () => {
-        setTimeout(initRound, 1000);
-    });
-}
-
+/**
+ * 7. BOUGIE REWARDS (Cleaned up for Cumulative Logic)
+ */
 function triggerReward(title, imgFile) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
     playSuccessDitty();
     
-    // Path uses Assets/ (Capital A) and backticks ( ` )
-    overlay.innerHTML = `<img src="Assets/${imgFile}" onerror="this.src='Assets/${imgFile.toLowerCase()}'">`;
+    // Path uses Assets/ (Capital A) and backticks
+    overlay.innerHTML = `<img src="Assets/${imgFile}" style="max-width: 80%; max-height: 70vh; border-radius: 40px;">`;
     overlay.style.display = 'flex';
     
     speak(title, () => {
         setTimeout(() => {
             overlay.style.display = 'none';
-            if (state.streak === 10) state.sets++;
+            // Removed the "if (state.streak === 10) state.sets++" from here 
+            // because it is now handled instantly in checkChallenge
             initRound();
         }, 3500);
     });
