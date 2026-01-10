@@ -23,6 +23,7 @@ loadVoices();
 
 function speak(text, callback) {
     window.speechSynthesis.cancel();
+    // Phonetic: Boh-ghee (Bow-tie + Ghee)
     let phoneticText = text.replace(/Bougie/g, "Boh-ghee");
     const msg = new SpeechSynthesisUtterance(phoneticText);
     if (state.voice) msg.voice = state.voice;
@@ -77,16 +78,16 @@ function renderStack(a, b) {
 function initRound() {
     if (state.timerId) clearTimeout(state.timerId);
     state.isProcessing = false;
-    instruct.innerText = ""; // Clear instructions
+    instruct.innerText = ""; 
     
     if (state.cccCount < 20) {
         state.phase = 'WARMUP';
         state.currentProblem = generateProblem();
         renderStack(state.currentProblem.a, state.currentProblem.b);
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}`;
-        
         instruct.innerText = "Remember the numbers!";
-        speak(`Remember the numbers. ${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`, () => {
+        
+        speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`, () => {
             setTimeout(setupWarmupInputs, 800);
         });
     } else {
@@ -147,7 +148,7 @@ function checkChallenge(val) {
     if (parseInt(val) === state.currentProblem.sum) {
         state.streak++;
         updateStats();
-        // Check for Milestones
+        // Milestone Logic
         if (state.streak === 10) triggerReward("Boh-ghee Streak!", "CalfCrash.png");
         else if (state.streak === 20) triggerReward("Double Boh-ghee!", "DoubleBougieRamming.png");
         else if (state.streak === 30) triggerReward("Triple Boh-ghee!", "TripleBougiePyramid.png");
@@ -160,7 +161,7 @@ function checkChallenge(val) {
 function handleFailure() {
     clearTimeout(state.timerId);
     state.isProcessing = true;
-    state.streak = 0; // RECOVERY LOGIC: Streak resets to 0
+    state.streak = 0; 
     updateStats();
     display.innerHTML = `<span style="color:#e74c3c">${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}</span>`;
     speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`, () => {
@@ -172,8 +173,8 @@ function triggerReward(title, imgFile) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
     playSuccessDitty();
     
-    // Path includes Assets folder (Capital A)
-    overlay.innerHTML = `<img src="Assets/${imgFile}">`;
+    // Path uses Assets/ (Capital A) and backticks ( ` )
+    overlay.innerHTML = `<img src="Assets/${imgFile}" onerror="this.src='Assets/${imgFile.toLowerCase()}'">`;
     overlay.style.display = 'flex';
     
     speak(title, () => {
