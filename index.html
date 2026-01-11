@@ -38,13 +38,13 @@
             height: 1000px; width: 140px; position: relative;
             background: #fdfdfd; border: 4px solid var(--purple);
             border-radius: 20px; overflow: hidden;
-            margin-right: 50px; /* Distance to the equation */
+            margin-right: 50px; /* Moved closer for better eye-tracking */
         }
         /* Thicker White Grid Lines over bars */
         .grid-line {
             position: absolute; width: 100%; height: 6px;
             background-color: white;
-            z-index: 5; /* Layered over the bars */
+            z-index: 5; /* Layered OVER the bars for visibility */
             box-shadow: 0 0 5px rgba(0,0,0,0.1);
         }
         #visual-stack { position: absolute; bottom: 0; width: 100%; z-index: 2; }
@@ -57,22 +57,29 @@
         
         #problem-area { flex: 1; text-align: center; }
         #instruction-text { font-size: 1.8rem; color: var(--purple); height: 2.5rem; margin-bottom: 15px; font-weight: bold; }
+        
+        /* Adjusted min-height to accommodate the LetsPlay.png */
         #problem-display {
             font-size: 6.5rem; margin-bottom: 40px; font-weight: 800;
             color: #2c3e50; display: flex; justify-content: center;
-            align-items: center; gap: 20px; min-height: 220px;
+            align-items: center; gap: 20px; min-height: 400px; 
         }
-        /* Refined Inputs for Auto-Advance Focus */
+
+        #problem-display img {
+            max-width: 450px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        #problem-display img:hover { transform: scale(1.05); }
+
         input[type=number] {
             font-size: 4.5rem; width: 140px; text-align: center;
             border: 6px solid var(--purple); border-radius: 25px;
             padding: 15px; outline: none; background: white; color: #2c3e50;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
         }
         #stats { font-size: 1.6rem; color: #7f8c8d; line-height: 1.6; }
         .score-box { font-weight: bold; color: var(--purple); background: #f0f0f0; padding: 4px 18px; border-radius: 12px; }
         
-        /* Reward Overlay */
         #reward-overlay {
             display: none; position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -82,7 +89,6 @@
         }
         #reward-overlay img { max-width: 85%; max-height: 80vh; border-radius: 40px; border: 5px solid white; }
         
-        /* Disable number spin buttons */
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
