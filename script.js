@@ -1,3 +1,8 @@
+/**
+ * MATH MAGIC: BOUGIE STREAKS 
+ * Logic Engine v6.0 - Reliability & Auto-Advance Focus
+ */
+
 const state = {
     phase: 'WARMUP',
     cccCount: 0,
@@ -14,6 +19,7 @@ const instruct = document.getElementById('instruction-text');
 const stackEl = document.getElementById('visual-stack');
 const overlay = document.getElementById('reward-overlay');
 
+// 1. SPEECH ENGINE INITIALIZATION
 function loadVoices() {
     const voices = window.speechSynthesis.getVoices();
     state.voice = voices.find(v => v.lang === 'en-AU' || v.lang === 'en-GB') || voices[0];
@@ -21,15 +27,27 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
+/**
+ * Robust Speech: Narrates without blocking game progression.
+ */
 function speak(text, callback) {
     window.speechSynthesis.cancel();
-    // Phonetic: Boh-ghee (Bow-tie + Ghee)
     let phoneticText = text.replace(/Bougie/g, "Boh-ghee");
     const msg = new SpeechSynthesisUtterance(phoneticText);
     if (state.voice) msg.voice = state.voice;
     msg.lang = 'en-AU';
     msg.rate = 0.9;
-    if (callback) msg.onend = callback;
+    
+    // Decoupled: We call the callback after a safety timeout to prevent hanging.
+    if (callback) {
+        msg.onend = callback;
+        // Safety fallback if speech fails to fire 'onend'
+        setTimeout(() => {
+            if (state.phase === 'WARMUP' && document.getElementById('w1') === null) {
+                callback();
+            }
+        }, 3000);
+    }
     window.speechSynthesis.speak(msg);
 }
 
@@ -51,16 +69,19 @@ function playSuccessDitty() {
     });
 }
 
+/**
+ * 80/20 Problem Generation
+ */
 function generateProblem() {
     let a, b, sum;
     if (state.phase === 'WARMUP') {
-        a = Math.floor(Math.random() * 9) + 1;
+        a = Math.floor(Math.random() * 9) + 1; // Addends <= 9
         b = Math.floor(Math.random() * 9) + 1;
     } else {
         const isHard = Math.random() < 0.2;
         const limit = isHard ? 20 : 15;
         do {
-            a = Math.floor(Math.random() * 10) + 1;
+            a = Math.floor(Math.random() * 10) + 1; // Addends <= 10
             b = Math.floor(Math.random() * 10) + 1;
             sum = a + b;
         } while (sum > limit || (isHard && sum <= 15));
@@ -75,9 +96,13 @@ function renderStack(a, b) {
     `;
 }
 
+/**
+ * Global Reset & Round Controller
+ */
 function initRound() {
+    // Kill all "ghost" timers and reset processing lock
     if (state.timerId) clearTimeout(state.timerId);
-    state.isProcessing = false;
+    state.isProcessing = false; 
     instruct.innerText = ""; 
     
     if (state.cccCount < 20) {
@@ -87,46 +112,63 @@ function initRound() {
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}`;
         instruct.innerText = "Remember the numbers!";
         
-        speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`, () => {
-            setTimeout(setupWarmupInputs, 800);
-        });
+        // Decoupled speech
+        speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`);
+        setTimeout(setupWarmupInputs, 2000); 
     } else {
         state.phase = 'CHALLENGE';
         state.currentProblem = generateProblem();
         renderStack(state.currentProblem.a, state.currentProblem.b);
-        display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = <input type="number" id="ans" autofocus>`;
-        const input = document.getElementById('ans');
-        input.focus();
-        input.oninput = () => {
-            const targetLen = state.currentProblem.sum >= 10 ? 2 : 1;
-            if (input.value.length >= targetLen) checkChallenge(input.value);
-        };
-        state.timerId = setTimeout(() => handleFailure(), 4000);
+        display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = <input type="number" id="ans" class="ans-field">`;
+        
+        // Resource buffer for Chromebook focus
+        setTimeout(() => {
+            const input = document.getElementById('ans');
+            if (input) {
+                input.focus();
+                // Auto-advance & Enter listeners
+                input.oninput = () => {
+                    const targetLen = state.currentProblem.sum >= 10 ? 2 : 1;
+                    if (input.value.length >= targetLen) checkChallenge(input.value);
+                };
+                input.onkeydown = (e) => { if (e.key === 'Enter') checkChallenge(input.value); };
+            }
+        }, 100);
+
+        // 5-second decay timer for challenge
+        state.timerId = setTimeout(() => handleFailure(), 5000);
     }
 }
 
 function setupWarmupInputs() {
     instruct.innerText = "Recreate the equation!";
     display.innerHTML = `
-        <input type="number" id="w1" autofocus> <span>+</span> 
-        <input type="number" id="w2"> <span>=</span> 
-        <input type="number" id="w3">
+        <input type="number" id="w1" class="w-field"> <span>+</span> 
+        <input type="number" id="w2" class="w-field"> <span>=</span> 
+        <input type="number" id="w3" class="w-field">
     `;
-    const fields = [document.getElementById('w1'), document.getElementById('w2'), document.getElementById('w3')];
-    fields[0].focus(); 
+    
+    setTimeout(() => {
+        const fields = [document.getElementById('w1'), document.getElementById('w2'), document.getElementById('w3')];
+        if (fields[0]) fields[0].focus(); 
 
-    fields.forEach((f, i) => {
-        f.oninput = () => {
-            if (i < 2 && f.value.length >= 1) fields[i+1].focus();
-            if (i === 2) {
-                const targetLen = state.currentProblem.sum >= 10 ? 2 : 1;
-                if (f.value.length >= targetLen) checkWarmup(fields);
-            }
-        };
-    });
+        fields.forEach((f, i) => {
+            // Auto-advance logic
+            f.oninput = () => {
+                if (i < 2 && f.value.length >= 1) fields[i+1].focus();
+                if (i === 2) {
+                    const targetLen = state.currentProblem.sum >= 10 ? 2 : 1;
+                    if (f.value.length >= targetLen) checkWarmup(fields);
+                }
+            };
+            // Backup Enter key support
+            f.onkeydown = (e) => { if (e.key === 'Enter') checkWarmup(fields); };
+        });
+    }, 100);
 }
 
 function checkWarmup(fields) {
+    if (state.isProcessing) return;
     const v1 = parseInt(fields[0].value);
     const v2 = parseInt(fields[1].value);
     const v3 = parseInt(fields[2].value);
@@ -135,6 +177,7 @@ function checkWarmup(fields) {
                       v3 === state.currentProblem.sum;
     
     if (isCorrect) {
+        state.isProcessing = true;
         state.cccCount++;
         document.getElementById('ccc-count').innerText = `${state.cccCount}/20`;
         initRound();
@@ -148,46 +191,47 @@ function checkChallenge(val) {
     
     if (parseInt(val) === state.currentProblem.sum) {
         state.streak++;
-        
-        // TARGETED FIX: Increment sets for EVERY milestone (10, 20, 30, 40, 50)
         if (state.streak % 10 === 0) {
             state.sets++; 
-            updateStats(); // Update the UI immediately so she sees the progress
-            
-            // Trigger specific rewards based on the current milestone
-            if (state.streak === 10) triggerReward("Boh-ghee Streak!", "CalfCrash.png");
-            else if (state.streak === 20) triggerReward("Double Boh-ghee!", "DoubleBougieRamming.png");
-            else if (state.streak === 30) triggerReward("Triple Boh-ghee!", "TripleBougiePyramid.png");
-            else if (state.streak === 40) triggerReward("Quad Boh-ghee Squad!", "BougieQuadSquad.png");
-            else if (state.streak === 50) triggerReward("The Perfect Boh-ghee!", "ThePerfectBougie.png");
+            updateStats();
+            // Milestone Rewards
+            const milestoneMap = {
+                10: { title: "Boh-ghee Streak!", img: "CalfCrash.png" },
+                20: { title: "Double Boh-ghee!", img: "DoubleBougieRamming.png" },
+                30: { title: "Triple Boh-ghee!", img: "TripleBougiePyramid.png" },
+                40: { title: "Quad Boh-ghee Squad!", img: "BougieQuadSquad.png" },
+                50: { title: "The Perfect Boh-ghee!", img: "ThePerfectBougie.png" }
+            };
+            const reward = milestoneMap[state.streak] || { title: "Boh-ghee Streak!", img: "CalfCrash.png" };
+            triggerReward(reward.title, reward.img);
         } else {
             updateStats();
             initRound();
         }
-    } else { 
-        handleFailure(); 
-    }
+    } else { handleFailure(); }
 }
 
-/**
- * 7. BOUGIE REWARDS (Cleaned up for Cumulative Logic)
- */
+function handleFailure() {
+    if (state.timerId) clearTimeout(state.timerId);
+    state.isProcessing = true; // Lock further input during correction
+    state.streak = 0; 
+    updateStats();
+    display.innerHTML = `<span style="color:#e74c3c">${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}</span>`;
+    speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`);
+    setTimeout(initRound, 2000); 
+}
+
 function triggerReward(title, imgFile) {
     confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
     playSuccessDitty();
-    
-    // Path uses Assets/ (Capital A) and backticks
     overlay.innerHTML = `<img src="Assets/${imgFile}" style="max-width: 80%; max-height: 70vh; border-radius: 40px;">`;
     overlay.style.display = 'flex';
     
-    speak(title, () => {
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            // Removed the "if (state.streak === 10) state.sets++" from here 
-            // because it is now handled instantly in checkChallenge
-            initRound();
-        }, 3500);
-    });
+    speak(title);
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        initRound();
+    }, 4000);
 }
 
 function updateStats() {
