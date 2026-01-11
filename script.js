@@ -1,6 +1,6 @@
 /**
  * MATH MAGIC: BOUGIE STREAKS 
- * Logic Engine v6.0 - Reliability & Auto-Advance Focus
+ * Logic Engine v7.0 - Randomized Rewards & Visual Initialization
  */
 
 const state = {
@@ -28,7 +28,7 @@ window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
 /**
- * Robust Speech: Narrates without blocking game progression.
+ * Robust Speech: Phonetic pronunciation for "Boh-ghee"
  */
 function speak(text, callback) {
     window.speechSynthesis.cancel();
@@ -37,17 +37,7 @@ function speak(text, callback) {
     if (state.voice) msg.voice = state.voice;
     msg.lang = 'en-AU';
     msg.rate = 0.9;
-    
-    // Decoupled: We call the callback after a safety timeout to prevent hanging.
-    if (callback) {
-        msg.onend = callback;
-        // Safety fallback if speech fails to fire 'onend'
-        setTimeout(() => {
-            if (state.phase === 'WARMUP' && document.getElementById('w1') === null) {
-                callback();
-            }
-        }, 3000);
-    }
+    if (callback) msg.onend = callback;
     window.speechSynthesis.speak(msg);
 }
 
@@ -75,13 +65,13 @@ function playSuccessDitty() {
 function generateProblem() {
     let a, b, sum;
     if (state.phase === 'WARMUP') {
-        a = Math.floor(Math.random() * 9) + 1; // Addends <= 9
+        a = Math.floor(Math.random() * 9) + 1; 
         b = Math.floor(Math.random() * 9) + 1;
     } else {
         const isHard = Math.random() < 0.2;
         const limit = isHard ? 20 : 15;
         do {
-            a = Math.floor(Math.random() * 10) + 1; // Addends <= 10
+            a = Math.floor(Math.random() * 10) + 1; 
             b = Math.floor(Math.random() * 10) + 1;
             sum = a + b;
         } while (sum > limit || (isHard && sum <= 15));
@@ -97,10 +87,9 @@ function renderStack(a, b) {
 }
 
 /**
- * Global Reset & Round Controller
+ * Round Controller with Safety Resets
  */
 function initRound() {
-    // Kill all "ghost" timers and reset processing lock
     if (state.timerId) clearTimeout(state.timerId);
     state.isProcessing = false; 
     instruct.innerText = ""; 
@@ -112,8 +101,8 @@ function initRound() {
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}`;
         instruct.innerText = "Remember the numbers!";
         
-        // Decoupled speech
         speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`);
+        // Safety timeout to advance even if speech engine fails
         setTimeout(setupWarmupInputs, 2000); 
     } else {
         state.phase = 'CHALLENGE';
@@ -121,12 +110,10 @@ function initRound() {
         renderStack(state.currentProblem.a, state.currentProblem.b);
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = <input type="number" id="ans" class="ans-field">`;
         
-        // Resource buffer for Chromebook focus
         setTimeout(() => {
             const input = document.getElementById('ans');
             if (input) {
                 input.focus();
-                // Auto-advance & Enter listeners
                 input.oninput = () => {
                     const targetLen = state.currentProblem.sum >= 10 ? 2 : 1;
                     if (input.value.length >= targetLen) checkChallenge(input.value);
@@ -135,8 +122,7 @@ function initRound() {
             }
         }, 100);
 
-        // 5-second decay timer for challenge
-        state.timerId = setTimeout(() => handleFailure(), 5000);
+        state.timerId = setTimeout(() => handleFailure(), 5000); // 5s Challenge Timer
     }
 }
 
@@ -153,7 +139,6 @@ function setupWarmupInputs() {
         if (fields[0]) fields[0].focus(); 
 
         fields.forEach((f, i) => {
-            // Auto-advance logic
             f.oninput = () => {
                 if (i < 2 && f.value.length >= 1) fields[i+1].focus();
                 if (i === 2) {
@@ -161,7 +146,6 @@ function setupWarmupInputs() {
                     if (f.value.length >= targetLen) checkWarmup(fields);
                 }
             };
-            // Backup Enter key support
             f.onkeydown = (e) => { if (e.key === 'Enter') checkWarmup(fields); };
         });
     }, 100);
@@ -194,15 +178,15 @@ function checkChallenge(val) {
         if (state.streak % 10 === 0) {
             state.sets++; 
             updateStats();
-            // Milestone Rewards
+            // Milestone Rewards: Milestone logic remains, but randomized within
             const milestoneMap = {
-                10: { title: "Boh-ghee Streak!", img: "CalfCrash.png" },
+                10: { title: "Boh-ghee Streak!", img: getRandomStreakImage() },
                 20: { title: "Double Boh-ghee!", img: "DoubleBougieRamming.png" },
                 30: { title: "Triple Boh-ghee!", img: "TripleBougiePyramid.png" },
                 40: { title: "Quad Boh-ghee Squad!", img: "BougieQuadSquad.png" },
                 50: { title: "The Perfect Boh-ghee!", img: "ThePerfectBougie.png" }
             };
-            const reward = milestoneMap[state.streak] || { title: "Boh-ghee Streak!", img: "CalfCrash.png" };
+            const reward = milestoneMap[state.streak] || { title: "Boh-ghee Streak!", img: getRandomStreakImage() };
             triggerReward(reward.title, reward.img);
         } else {
             updateStats();
@@ -211,9 +195,21 @@ function checkChallenge(val) {
     } else { handleFailure(); }
 }
 
+/**
+ * RANDOMIZATION ENGINE
+ */
+function getRandomStreakImage() {
+    const imgs = [
+        'CalfCrash.png', 'CalfHop.png', 'CalfKick.png', 
+        'CalfLickingDaisy.png', 'CalfMilk.png', 
+        'CalfSitting.png', 'CalfVsButterfly.png'
+    ];
+    return imgs[Math.floor(Math.random() * imgs.length)];
+}
+
 function handleFailure() {
     if (state.timerId) clearTimeout(state.timerId);
-    state.isProcessing = true; // Lock further input during correction
+    state.isProcessing = true;
     state.streak = 0; 
     updateStats();
     display.innerHTML = `<span style="color:#e74c3c">${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}</span>`;
@@ -239,6 +235,14 @@ function updateStats() {
     document.getElementById('sets-val').innerText = state.sets;
 }
 
+/**
+ * INITIALIZATION: Starts with the LetsPlay.png
+ */
 function handleFirstClick() {
     if (!state.currentProblem) initRound();
 }
+
+window.onload = () => {
+    // Show initiation image
+    display.innerHTML = `<img src="Assets/LetsPlay.png" style="max-width: 400px; cursor: pointer;">`;
+};
