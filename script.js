@@ -1,6 +1,6 @@
 /**
  * MATH MAGIC: BOUGIE STREAKS 
- * Logic Engine v7.0 - Randomized Rewards & Visual Initialization
+ * Logic Engine v7.1 - Skip Warmup Logic
  */
 
 const state = {
@@ -18,6 +18,7 @@ const display = document.getElementById('problem-display');
 const instruct = document.getElementById('instruction-text');
 const stackEl = document.getElementById('visual-stack');
 const overlay = document.getElementById('reward-overlay');
+const skipBtn = document.getElementById('skip-btn');
 
 // 1. SPEECH ENGINE INITIALIZATION
 function loadVoices() {
@@ -27,9 +28,6 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-/**
- * Robust Speech: Phonetic pronunciation for "Boh-ghee"
- */
 function speak(text, callback) {
     window.speechSynthesis.cancel();
     let phoneticText = text.replace(/Bougie/g, "Boh-ghee");
@@ -59,9 +57,6 @@ function playSuccessDitty() {
     });
 }
 
-/**
- * 80/20 Problem Generation
- */
 function generateProblem() {
     let a, b, sum;
     if (state.phase === 'WARMUP') {
@@ -87,7 +82,7 @@ function renderStack(a, b) {
 }
 
 /**
- * Round Controller with Safety Resets
+ * Round Controller
  */
 function initRound() {
     if (state.timerId) clearTimeout(state.timerId);
@@ -96,16 +91,27 @@ function initRound() {
     
     if (state.cccCount < 20) {
         state.phase = 'WARMUP';
+        skipBtn.style.display = 'inline-block';
+        
+        // Skip Button Action
+        skipBtn.onclick = (e) => {
+            e.stopPropagation();
+            state.cccCount = 20;
+            document.getElementById('ccc-count').innerText = `20/20`;
+            initRound();
+        };
+
         state.currentProblem = generateProblem();
         renderStack(state.currentProblem.a, state.currentProblem.b);
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = ${state.currentProblem.sum}`;
         instruct.innerText = "Remember the numbers!";
         
         speak(`${state.currentProblem.a} plus ${state.currentProblem.b} is ${state.currentProblem.sum}`);
-        // Safety timeout to advance even if speech engine fails
         setTimeout(setupWarmupInputs, 2000); 
     } else {
         state.phase = 'CHALLENGE';
+        skipBtn.style.display = 'none'; // Hide skip button in challenge
+
         state.currentProblem = generateProblem();
         renderStack(state.currentProblem.a, state.currentProblem.b);
         display.innerHTML = `${state.currentProblem.a} + ${state.currentProblem.b} = <input type="number" id="ans" class="ans-field">`;
@@ -122,11 +128,12 @@ function initRound() {
             }
         }, 100);
 
-        state.timerId = setTimeout(() => handleFailure(), 5000); // 5s Challenge Timer
+        state.timerId = setTimeout(() => handleFailure(), 5000); 
     }
 }
 
 function setupWarmupInputs() {
+    if (state.phase !== 'WARMUP') return;
     instruct.innerText = "Recreate the equation!";
     display.innerHTML = `
         <input type="number" id="w1" class="w-field"> <span>+</span> 
@@ -178,7 +185,6 @@ function checkChallenge(val) {
         if (state.streak % 10 === 0) {
             state.sets++; 
             updateStats();
-            // Milestone Rewards: Milestone logic remains, but randomized within
             const milestoneMap = {
                 10: { title: "Boh-ghee Streak!", img: getRandomStreakImage() },
                 20: { title: "Double Boh-ghee!", img: "DoubleBougieRamming.png" },
@@ -195,15 +201,8 @@ function checkChallenge(val) {
     } else { handleFailure(); }
 }
 
-/**
- * RANDOMIZATION ENGINE
- */
 function getRandomStreakImage() {
-    const imgs = [
-        'CalfCrash.png', 'CalfHop.png', 'CalfKick.png', 
-        'CalfLickingDaisy.png', 'CalfMilk.png', 
-        'CalfSitting.png', 'CalfVsButterfly.png'
-    ];
+    const imgs = ['CalfCrash.png', 'CalfHop.png', 'CalfKick.png', 'CalfLickingDaisy.png', 'CalfMilk.png', 'CalfSitting.png', 'CalfVsButterfly.png'];
     return imgs[Math.floor(Math.random() * imgs.length)];
 }
 
@@ -235,25 +234,16 @@ function updateStats() {
     document.getElementById('sets-val').innerText = state.sets;
 }
 
-/**
-* INITIALIZATION: Large graphic + Text Prompt
- */
 function showStartScreen() {
-    // Reintroducing the text prompt and a much larger image
     display.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer;">
             <img src="Assets/LetsPlay.png" id="start-image" style="width: 600px; height: auto; margin-bottom: 20px;">
             <h1 style="font-size: 3.5rem; color: #876EB8; margin: 0; font-family: 'Segoe UI', sans-serif;">Click to Play!</h1>
         </div>
     `;
-    
-    // Optional: Narrate the invitation
-    setTimeout(() => {
-        speak("Click the calf to play!");
-    }, 1000);
+    setTimeout(() => { speak("Click the calf to play!"); }, 1000);
 }
 
-// Update the bottom of your script to use this new function
 function handleFirstClick() {
     if (!state.currentProblem) initRound();
 }
